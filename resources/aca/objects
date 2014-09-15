@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<acaprofile>
+  <profile name="Stiles" cts="2">
+    <colordata color="10330282"/>
+    <colordata color="9541022"/>
+    <colordata color="10461868"/>
+    <colordata color="11185592"/>
+    <colordata color="8948884"/>
+    <colordata color="11317179"/>
+    <colordata color="9409435"/>
+    <colordata color="8619919"/>
+    <colordata color="10790577"/>
+    <colordata color="8158854"/>
+    <colordata color="10526893"/>
+    <colordata color="11645889"/>
+    <colordata color="10000548"/>
+    <colordata color="11053238"/>
+    <colordata color="12106184"/>
+  </profile>
+  <profile name="Stiles - Cage" cts="3">
+    <colordata color="3421753"/>
+    <colordata color="3224118"/>
+    <colordata color="4276806"/>
+    <colordata color="3290167"/>
+    <colordata color="4079683"/>
+    <colordata color="3487546"/>
+    <colordata color="3684925"/>
+    <colordata color="2697772"/>
+  </profile>
+  <profile name="Fishing spot" cts="3">
+    <colordata color="15327189"/>
+    <colordata color="13219499"/>
+    <colordata color="12562083"/>
+    <colordata color="13153449"/>
+    <colordata color="12233375"/>
+    <colordata color="12167583"/>
+    <colordata color="12167839"/>
+    <colordata color="12167582"/>
+    <colordata color="15458264"/>
+    <colordata color="10915970"/>
+    <colordata color="9729123"/>
+  </profile>
+</acaprofile>

@@ -1,0 +1,390 @@
+program superusers_karamja_fisher;
+
+{$define SMART}
+{$define _DEBUG_SURFACES}
+
+{$i srl-6/srl.simba}
+{$i srl-6/lib/misc/srlplayerform.simba}
+{$i sps/lib/sps-rs3.simba}
+{$i superusers-surfaces.simba}
+
+const
+  VERSION = '1.0';
+
+var
+  karamja: TSPSArea;
+  walking_paths: T2DPointArray;
+
+procedure TPlayer.Configure()
+begin
+  if not self.Login() then
+    TerminateScript();
+
+  minimap.clickCompass();
+  mainscreen.setAngle(MS_ANGLE_HIGH);
+end
+
+procedure AssertSPSMap(path, url, name, _sha1: string)
+var
+  map, data: string;
+  fh: LongInt;
+begin
+  map := AppPath + path + '/' + name + '.png';
+
+  if FileExists(map) then begin
+    fh := OpenFile(map, false);
+    ReadFileString(fh, data, FileSize(fh));
+    CloseFile(fh);
+
+    if Sha1(data) = _sha1 then
+      Exit();
+  end
+
+  CloseFile(CreateFile(map));
+
+  fh := ReWriteFile(map, false);
+
+  WriteFileString(fh, GetPage(url + '/' + name + '.png'));
+  CloseFile(fh);
+end
+
+procedure Updater()
+var
+  version_remote, source, s: string;
+  fh: LongInt;
+  i: integer;
+begin
+  version_remote := GetPage(
+    'https://raw.githubusercontent.com/SRLSuperUser/superusers-karamja-fisher' +
+    '/master/version'
+  );
+
+  if version_remote = '' then begin
+    MessageBox('Cannot access GitHub. Please make sure you have OpenSSL insta' +
+      'lled on your system', 'Error', 0);
+
+    TerminateScript();
+  end
+
+  if not (VERSION = version_remote) then begin
+    source := GetPage(
+      'https://raw.githubusercontent.com/SRLSuperUser/superusers-karamja-fish' +
+      'er/master/superusers-karamja-fisher.simba'
+    );
+
+    try
+      fh := ReWritefile(ScriptPath + 'superusers-karamja-fisher.simba', true);
+
+      WriteFileString(fh, source);
+
+      MessageBox(
+        'Successfully updated SuperUser''s Karamja Fisher to v' +
+        version_remote + '!' + Chr(13) + Chr(13) + ' Please reload the script.',
+        'Success',
+        0
+      );
+
+      TerminateScript();
+    except
+      MessageBox('An error occurred while trying to update!', 'Error', 0);
+    finally
+      CloseFile(fh);
+    end
+  end
+end
+
+procedure Initialize()
+begin
+  ClearDebug();
+
+  disableSRLDebug := true;
+  currentPlayer := 0;
+  smartPlugins := ['d3d9.dll'];
+  smartEnableDrawing := true;
+
+  SetupSRL();
+
+  players.setup([''], 'default');
+
+  currentPlayer := 0;
+
+  players[currentPlayer].isActive := true;
+  players[currentPlayer].isMember := true;
+  players[currentPlayer].Configure();
+
+  SUSSetup();
+
+  SUSAddObject('Fishing spot')
+    ^.CreatePart()
+      ^.SetColorData(3, 12495003, 43, 0.0, 0.0, 0.50)
+      ^.SetSize([2, 2, 155, 155])
+      ^.SetMaxDistance(200)
+      ^.SetStep(6)
+      ^.SetAnti(false)
+      ^.SetMinPixelCount(6);
+
+  with SUSAddObject('Stiles')^ do begin
+    CreatePart()
+      ^.SetColorData(2, 10066856, 13, 0.26, 0.37)
+      ^.SetSize([3, 3, 65, 65])
+      ^.SetMaxDistance(200)
+      ^.SetStep(12)
+      ^.SetAnti(false)
+      ^.SetMinPixelCount(10);
+
+    CreatePart()
+      ^.SetColorData(3, 3421753, 12, 0.0, 0.0, 0.50)
+      ^.SetSize([2, 2, 65, 65])
+      ^.SetMaxDistance(200)
+      ^.SetStep(10)
+      ^.SetAnti(false)
+      ^.SetMinPixelCount(5);
+  end
+
+  karamja.setup('karamja', '', __DEFAULT_ACCURACY, __DEFAULT_TOLERANCE, 0.7);
+
+  SetLength(walking_paths, 5);
+
+  walking_paths[0] := [
+    Point(589, 119), Point(587, 130), Point(579, 133), Point(561, 137),
+    Point(542, 137), Point(530, 149), Point(498, 151), Point(482, 157),
+    Point(479, 176), Point(477, 188), Point(452, 188), Point(423, 202),
+    Point(395, 216), Point(370, 237), Point(357, 251), Point(326, 250),
+    Point(306, 262), Point(292, 268), Point(271, 274)];
+
+  walking_paths[1] := [
+    Point(588, 117), Point(588, 127), Point(590, 142), Point(564, 153),
+    Point(539, 161), Point(521, 148), Point(478, 167), Point(477, 185),
+    Point(465, 198), Point(430, 204), Point(406, 219), Point(371, 236),
+    Point(333, 247), Point(309, 256), Point(291, 265), Point(270, 276)
+  ];
+
+  walking_paths[2] := [
+    Point(589, 128), Point(587, 139), Point(568, 153), Point(542, 161),
+    Point(511, 151), Point(480, 164), Point(482, 188), Point(478, 210),
+    Point(449, 220), Point(406, 229), Point(371, 243), Point(353, 249),
+    Point(330, 252), Point(306, 263), Point(285, 267), Point(269, 277)
+  ];
+
+  walking_paths[3] := [
+    Point(588, 123), Point(591, 130), Point(589, 142), Point(562, 146),
+    Point(545, 153), Point(524, 154), Point(485, 158), Point(478, 172),
+    Point(476, 189), Point(458, 223), Point(430, 221), Point(401, 221),
+    Point(376, 234), Point(349, 248), Point(305, 262), Point(275, 273)
+  ];
+
+  walking_paths[4] := [
+    Point(588, 126), Point(591, 137), Point(586, 152), Point(574, 159),
+    Point(544, 157), Point(529, 150), Point(498, 146), Point(480, 183),
+    Point(442, 196), Point(404, 216), Point(367, 239), Point(334, 253),
+    Point(296, 261), Point(271, 275)
+  ];
+end
+
+procedure Uninitialize()
+begin
+
+end
+
+procedure Walk(invert: boolean = false)
+var
+  path: TPointArray;
+begin
+  path := walking_paths[Random(Length(walking_paths))].Copy();
+
+  if invert then
+    path.Invert();
+
+  karamja.WalkPath(path);
+end
+
+procedure MinMaxShift()
+var
+  min, max, c: integer;
+begin
+  min := 9999;
+  max := 0;
+
+  repeat
+    c := GetPixelShiftAverage(mainscreen.playerBox,  50, 250);
+
+    if c < min then begin
+      min := c;
+
+      WriteLn(ToStr(c) + ' - ' + ToStr(max));
+    end
+
+    if c > max then begin
+      max := c;
+
+      WriteLn(ToStr(min) + ' - ' + ToStr(c));
+    end
+  until false;
+end
+
+function TIntegerArray.StdDev(): extended
+var
+  avg, total: extended;
+  i: integer;
+begin
+  for i := 0 to High(self) do
+    total := total + self[i];
+
+  avg := total / Length(self);
+  total := 0;
+
+  for i := 0 to High(self) do
+    total := total + Pow(self[i] - avg, 2);
+
+  result := Sqrt(total / Length(self));
+end
+
+{**
+ * Check whether the player is currently fishing.
+ * Uses standard deviation with two sigma-confidence.
+ *}
+function IsFishing(sigmas: integer = 2): boolean
+var
+  c, i: integer;
+  ia: TIntegerArray;
+  e: extended;
+begin
+  SetLength(ia, 10);
+  Dec(sigmas);
+
+  c := tabBackpack.Count();
+  result := false;
+
+  for i := 0 to High(ia) do begin
+    if tabBackpack.IsFull() then
+      Exit(false);
+
+    if c <> tabBackpack.Count() then
+      Exit(true);
+
+    ia[i] := GetPixelShiftAverage(mainscreen.playerBox, 25, 100);
+  end
+
+  e := ia.StdDev();
+
+  if (e < 50) and (sigmas > 0) then
+    result := IsFishing(sigmas)
+  else
+    result := e > 50;
+end
+
+procedure Die(const message: string = '')
+begin
+  WriteLn(message);
+
+  TerminateScript();
+end
+
+procedure NoteFish(tries: integer = 5)
+var
+  c: integer;
+  t: TTimeMarker;
+begin
+  if tries = 0 then
+    Die('Cannot note fish');
+
+  Walk();
+
+  c := tabBackpack.Count();
+
+  if SUSGetObject('Stiles')^.Click(10, MOUSE_RIGHT, 'xch', true, true) then begin
+    t.Start();
+
+    repeat
+      Wait(RandomRange(33, 66));
+
+      if t.GetTime() > 10000 then begin
+        NoteFish(tries - 1);
+
+        Exit();
+      end
+    until c <> tabBackpack.Count();
+  end else begin
+    NoteFish(tries - 1);
+
+    Exit();
+  end
+
+  Walk(true);
+end
+
+procedure AntiBan();
+begin
+  if (not IsLoggedIn()) then
+    Exit();
+
+  case Random(600) of
+    1: HoverSkill(SKILL_FISHING);
+    3: SmallRandomMouse();
+    4: RandomRClickItem();
+    6: begin
+      boredHuman();
+
+      mainscreen.SetAngle(MS_ANGLE_HIGH);
+    end
+    10..30: minimap.SetAngle(Random(360));
+    31..80: MouseRandom(mainscreen.GetBounds().GetRandomPoint(), MOUSE_MOVE);
+  end;
+end;
+
+procedure DropJunkFish()
+var
+  shrimp_etc, I: integer;
+  pa: TPointArray;
+begin
+  shrimp_etc := DTMFromString('mlwAAAHicY2dgYFjExMAwH4jnAfFKIN4JxDuAeD0QT2VkYJgBxLOg9DQgXgjES4CYgYEJD6YIAABJfgkN');
+
+  with tabBackpack.getBounds() do
+    FindDTMs(shrimp_etc, pa, x1, y1, x2, y2);
+
+  for i := 0 to High(pa) do begin
+    MouseRandom(pa[i], MOUSE_RIGHT);
+
+    chooseOption.Select(['rop Raw'], 1, 2000);
+
+    Wait(RandomRange(50, 250));
+  end
+
+  FreeDtm(shrimp_etc);
+end
+
+begin
+  Initialize();
+
+  repeat
+    Walk(true);
+
+    repeat
+      while tabBackpack.Count() < 28 do begin
+        if SUSGetObject('Fishing spot')^.Click(
+          20,
+          MOUSE_LEFT,
+          'arp',
+          true,
+          true,
+          true
+        ) then begin
+          Wait(1000 + Random(1000));
+
+          while IsFishing() do begin
+            Wait(RandomRange(30, 60));
+
+            AntiBan();
+          end
+        end
+      end
+
+      DropJunkFish();
+
+      if tabBackpack.Count() = 28 then
+        NoteFish();
+    until not IsLoggedIn();
+
+    players[currentPlayer].Configure();
+  until false;
+end.
