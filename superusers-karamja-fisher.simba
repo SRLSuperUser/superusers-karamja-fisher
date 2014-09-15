@@ -504,8 +504,16 @@ begin
   CloseFile(CreateFile(map));
 
   fh := ReWriteFile(map, false);
+  data := GetPage(url + '/' + name + '.png');
 
-  WriteFileString(fh, GetPage(url + '/' + name + '.png'));
+  if data = '' then begin
+    MessageBox('Cannot download SPS-map. Please make sure you have OpenSSL in' +
+      'stalled on your system', 'Error', 0);
+
+    TerminateScript();
+  end
+
+  WriteFileString(fh, data);
   CloseFile(fh);
 end
 
