@@ -610,7 +610,7 @@ begin
 
   with SUSAddObject('Fishing spot')^ do begin
     CreatePart()
-      ^.SetColorData(3, 12492682, 28, 0.0, 0.0, 1.00)
+      ^.SetColorData(3, 11968916, 25, 0.0, 0.0, 0.95)
       ^.SetSize([2, 2, 155, 155])
       ^.SetMaxDistance(200)
       ^.SetStep(6)
@@ -703,16 +703,36 @@ begin
 
 end
 
+procedure Die(const message: string = '')
+begin
+  WriteLn(message);
+
+  TerminateScript();
+end
+
 procedure Walk(invert: boolean = false)
 var
   path: TPointArray;
+  i: integer;
 begin
   path := walking_paths[Random(Length(walking_paths))].Copy();
 
   if invert then
     path.Invert();
 
-  karamja.WalkPath(path);
+  i := 0;
+
+  repeat
+    if not karamja.WalkPath(path) then begin
+      Inc(i);
+
+      if i > 3 then
+        Die('For some reason, cannot walk..');
+
+      Wait(RandomRange(1000, 3000));
+    end else
+      break;
+  until false;
 end
 
 {**
@@ -768,13 +788,6 @@ begin
     result := IsFishing(sigmas)
   else
     result := e > 50;
-end
-
-procedure Die(const message: string = '')
-begin
-  WriteLn(message);
-
-  TerminateScript();
 end
 
 procedure NoteFish(tries: integer = 5)
