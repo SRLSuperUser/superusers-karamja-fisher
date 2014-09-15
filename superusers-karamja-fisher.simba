@@ -47,6 +47,7 @@ var
   karamja: TSPSArea;
   walking_paths: T2DPointArray;
   __surface_objects: TSurfaceObjectArray;
+  fish_str: string;
 
 procedure SUSSetup()
 begin
@@ -470,11 +471,18 @@ end
 
 procedure TPlayer.Configure()
 begin
+  disableSRLDebug := not self.booleans[0];
+
   if not self.Login() then
     TerminateScript();
 
   minimap.clickCompass();
   mainscreen.setAngle(MS_ANGLE_HIGH);
+
+  if self.strings[1] = 'Lobster' then
+    fish_str := 'age'
+  else
+    fish_str := 'arp';
 end
 
 procedure AssertSPSMap(path, url, name, _sha1: string)
@@ -547,6 +555,8 @@ begin
 end
 
 procedure Initialize()
+var
+  i: integer;
 begin
   ClearDebug();
 
@@ -555,14 +565,37 @@ begin
   smartPlugins := ['d3d9.dll'];
   smartEnableDrawing := true;
 
+  with playerform do begin
+    name := 'SuperUser''s Karamja Fisher';
+    scriptHelpThread := 'http://villavu.com/forum/showthread.php?t=';
+    scriptSettingsPath := AppPath + 'Scripts/superusers-karamja-fisher.txt';
+
+    comboBoxLabels := ['Fish type'];
+    comboBoxDefaults := ['Lobster'];
+    comboBoxItems := [['Lobster', 'Tuna / Swordfish']];
+
+    checkBoxLabels := ['Show SRL debug'];
+    checkBoxDefaults := ['false'];
+  end
+
+  RunPlayerForm();
+
+  players.setup(playerForm.playerNames, playerForm.playerFile);
+
   SetupSRL();
 
-  players.setup([''], 'default');
+  for i := 0 to high(players) do
+    with players[i] do begin
+      booleans[0] := StrToBool(
+        playerForm.players[i].settings[0]
+      );
+
+      strings[1] := playerForm.players[i].settings[1]; // Fish type
+    end
 
   currentPlayer := 0;
 
   players[currentPlayer].isActive := true;
-  players[currentPlayer].isMember := true;
   players[currentPlayer].Configure();
 
   SUSSetup();
@@ -818,7 +851,7 @@ begin
         if SUSGetObject('Fishing spot')^.Click(
           20,
           MOUSE_LEFT,
-          'arp',
+          fish_str,
           true,
           true,
           true
