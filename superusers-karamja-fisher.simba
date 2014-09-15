@@ -6,14 +6,467 @@ program superusers_karamja_fisher;
 {$i srl-6/srl.simba}
 {$i srl-6/lib/misc/srlplayerform.simba}
 {$i sps/lib/sps-rs3.simba}
-{$i superusers-surfaces.simba}
 
 const
   VERSION = '1.0';
 
+type
+  TSurfacePartFilterFunc = function (
+    const atpa: T2DPointArray;
+    const p_: TPoint;
+    out index: integer
+  ): TPoint;
+
+  TSurfacePart = record
+    bounds,
+    size: TBox;
+    color_settings: TColorSettings;
+    color_tolerance,
+    color,
+    step,
+    max_distance,
+    min_pixel_count: integer;
+    anti: boolean;
+    p: TPoint;
+    base_atpa: T2DPointArray;
+  end
+
+  TSurfacePartArray = array of ^TSurfacePart;
+
+  TSurfaceObject = record
+    name: string;
+    parts: TSurfacePartArray;
+    bounds: TBox;
+    hits: TBoxArray;
+    filter: TSurfacePartFilterFunc;
+  end
+
+  TSurfaceObjectArray = array of ^TSurfaceObject;
+
 var
   karamja: TSPSArea;
   walking_paths: T2DPointArray;
+  __surface_objects: TSurfaceObjectArray;
+
+procedure SUSSetup()
+begin
+  AddOnTerminate('SUSUninitialize');
+end
+
+procedure SUSUninitialize()
+var
+  i: integer;
+begin
+  for i := 0 to High(__surface_objects) do
+    FreeMem(__surface_objects[i]);
+end
+
+function SurfaceFilterClosest(
+  const atpa: T2DPointArray;
+  const p_: TPoint;
+  out index: integer
+): TPoint
+var
+  i: integer;
+  p: TPoint;
+  c, ch: extended;
+begin
+  ch := $ffff;
+
+  for i := 0 to High(atpa) do begin
+    p := MiddleTPA(atpa[i]);
+    c := Sqrt(Sqr(Abs(p_.x - p.x)) + Sqr(Abs(p_.y - p.y)));
+
+    if c < ch then begin
+      ch := c;
+      result := p;
+      index := i;
+    end
+  end
+end
+
+function SUSAddObject(
+  const name: string;
+  filter: TSurfacePartFilterFunc = @SurfaceFilterClosest
+): ^TSurfaceObject
+begin
+  result := __surface_objects.Create(name, @filter);
+end
+
+function TSurfaceObjectArray.Create(
+  const _name: string;
+  _filter: TSurfacePartFilterFunc = @SurfaceFilterClosest
+): ^TSurfaceObject
+begin
+  SetLength(self, Length(self) + 1);
+
+  New(result);
+
+  with result^ do begin
+    name := _name;
+    filter := @_filter;
+  end
+
+  self[High(self)] := result;
+end
+
+function TBox.FindColorsTPA(
+  const tcs: TColorSettings;
+  d, c, t: integer
+): TPointArray
+var
+  tpa: TPointArray;
+begin
+  FindColorsTolerance(tpa, c, self, t, tcs);
+
+  result := RemoveDistTPointArray(
+    mainscreen.playerPoint.x,
+    mainscreen.playerPoint.y,
+    d,
+    RemoveDistTPointArray(
+      mainscreen.playerPoint.x, mainscreen.playerPoint.y, 10, tpa, false
+    ),
+    true
+  );
+end
+
+function TPointArray.AssertBoxSize(const size: TBox): boolean
+begin
+  result := true;
+
+  with GetTPABounds(self) do
+    if (x2 - x1 < size.x1) or
+       (x2 - x1 > size.x2) or
+       (y2 - y1 < size.y1) or
+       (y2 - y1 > size.y2) then
+      result := false;
+end
+
+procedure T2DPointArray.DeleteIndex(index: integer)
+var
+  i: integer;
+begin
+  for i := index to High(self) - 1 do
+    self[i] := self[i + 1];
+
+  SetLength(self, Length(self) - 1);
+end
+
+function TSurfacePart.Find(
+  const b: TBox;
+  const f: TSurfacePartFilterFunc = @SurfaceFilterClosest
+): boolean
+var
+  atpa, atpa_: T2DPointArray;
+  i: integer;
+begin
+  result := false;
+  atpa := SplitTPAEx(
+    b.FindColorsTPA(
+      self.color_settings,
+      self.max_distance,
+      self.color,
+      self.color_tolerance
+    ),
+    self.step,
+    self.step // TODO: Individual x/y -steps.
+  );
+
+  for i := 0 to High(atpa) do begin
+    if atpa[i].AssertBoxSize(self.size) and
+      (Length(atpa[i]) > self.min_pixel_count) then begin
+      SetLength(atpa_, Length(atpa_) + 1);
+
+      atpa_[High(atpa_)] := CopyTPA(atpa[i]);
+    end else begin
+      {$ifdef DEBUG_SURFACES}
+      smartImage.drawBox(atpa[i].GetBounds(), clRed);
+      {$endif}
+    end
+  end
+
+  if Length(atpa_) > 0 then begin
+    SetLength(self.base_atpa, 0);
+
+    self.base_atpa := CopyATPA(atpa_);
+    result := true;
+  end
+end
+
+function TSurfacePartArray.Create(const csp: TSurfacePart = []): ^TSurfacePart
+begin
+  SetLength(self, Length(self) + 1);
+
+  New(result);
+
+  with result^ do begin
+    base_atpa := csp.base_atpa;
+    bounds := csp.bounds;
+    color := csp.color;
+    color_settings := csp.color_settings;
+    color_tolerance := csp.color_tolerance;
+    max_distance := csp.max_distance;
+    min_pixel_count := csp.min_pixel_count;
+    size := csp.size;
+    step := csp.step;
+    anti := csp.anti;
+  end
+
+  self[High(self)] := result;
+end
+
+function TSurfacePart.SetMinPixelCount(
+  pixel_count: integer
+): ^TSurfacePart
+begin
+  self.min_pixel_count := pixel_count;
+
+  result := @self;
+end
+
+function TSurfacePart.SetAnti(
+  _anti: boolean = true
+): ^TSurfacePart
+begin
+  self.anti := _anti;
+
+  result := @self;
+end
+
+function TSurfacePart.SetStep(
+  _step: integer
+): ^TSurfacePart
+begin
+  self.step := _step;
+
+  result := @self;
+end
+
+function TSurfacePart.SetMaxDistance(
+  distance: integer
+): ^TSurfacePart
+begin
+  self.max_distance := distance;
+
+  result := @self;
+end
+
+function TSurfacePart.SetSize(
+  _size: TBox
+): ^TSurfacePart
+begin
+  self.size := _size;
+
+  result := @self;
+end
+
+function TSurfacePart.SetColorData(
+  _cts,
+  _color,
+  _tolerance: integer;
+  _hue,
+  _saturation,
+  _sensitivity: extended = 0.0
+): ^TSurfacePart
+begin
+  self.color := _color;
+  self.color_tolerance := _tolerance;
+  self.color_settings.cts := _cts;
+  self.color_settings.modifier.hue := _hue;
+  self.color_settings.modifier.saturation := _saturation;
+  self.color_settings.modifier.sensitivity := _sensitivity;
+
+  result := @self;
+end
+
+function TSurfaceObject.CreatePart(): ^TSurfacePart
+begin
+  result := self.parts.Create();
+end
+
+function TSurfaceObject.Point(): TPoint
+begin
+  result := self.bounds.GetMiddle();
+end
+
+function TSurfaceObject.Find(
+  const area: TBox;
+  const f: TSurfacePartFilterFunc = nil
+): boolean
+var
+  many_parts, b: boolean;
+  i, k, j, mp: integer;
+  o: TSurfacePartFilterFunc;
+begin
+  many_parts := Length(self.parts) > 1;
+  result := true;
+  mp := 0;
+
+  if @f <> nil then begin
+    o := @self.filter;
+    self.filter := @f;
+  end
+
+  {$ifdef DEBUG_SURFACES}
+
+  smartImage.clear();
+
+  {$endif}
+
+  for i := 0 to High(self.parts) do begin
+    if i = 0 then
+      result := self.parts[0]^.Find(area, @self.filter)
+    else begin
+      if not result then begin
+        if @f <> nil then
+          self.filter := @o;
+
+        Exit();
+      end
+
+      if many_parts then begin
+        k := High(self.parts[0]^.base_atpa);
+
+        for j := 0 to k do begin
+          {$ifdef DEBUG_SURFACES}
+
+          smartImage.drawBox(self.parts[0]^.base_atpa[j].GetBounds(), clRed);
+
+          {$endif}
+
+          b := self.parts[i]^.Find(
+            GetTPABounds(self.parts[0]^.base_atpa[j]),
+            @self.filter
+          );
+
+          if self.parts[i]^.anti then
+            b := not b
+
+          if not b then begin
+            // Remove from potential hits.
+            self.parts[0]^.base_atpa.DeleteIndex(j);
+
+            Dec(k);
+            Dec(j);
+          end
+        end
+      end
+    end
+  end
+
+  if Length(self.parts[0]^.base_atpa) = 0 then begin
+    if @f <> nil then
+      self.filter := @o;
+
+    Exit(false);
+  end
+
+  self.filter(self.parts[0]^.base_atpa, mainscreen.playerPoint, i);
+
+  self.bounds := GetTPABounds(self.parts[0]^.base_atpa[i]);
+
+  SetLength(self.hits, Length(self.parts[0]^.base_atpa));
+
+  for i := 0 to High(self.hits) do begin
+    {$ifdef DEBUG_SURFACES}
+
+    smartImage.drawBox(self.parts[0]^.base_atpa[i].GetBounds(), clYellow);
+
+    {$endif}
+
+    self.hits[i] := self.parts[0]^.base_atpa[i].GetBounds();
+  end
+
+  SetLength(self.parts[0]^.base_atpa, 0);
+
+  if @f <> nil then
+    self.filter := @o;
+end
+
+function SUSGetObject(const name: string): ^TSurfaceObject
+var
+  i: integer;
+begin
+  result := nil;
+
+  for i := 0 to High(__surface_objects) do
+    if __surface_objects[i]^.name = name then
+      Exit(__surface_objects[i]);
+end
+
+function MouseRandom(const p: TPoint; mouse_action: integer): TPoint
+var
+  mouse_style: array [0..2] of integer;
+  x, y: integer;
+begin
+  mouse_style := [MOUSE_BREAK, MOUSE_ACCURATE, MOUSE_HUMAN];
+  mouseSpeed := RandomRange(30, 38);
+
+  if (mouse_action = MOUSE_MOVE) then
+    MissMouse(p, true)
+  else
+    Mouse(p, mouse_action, mouse_style[Random(2)]);
+
+  GetMousePos(x, y);
+
+  result := TPoint([x, y]);
+end
+
+function TSurfaceObject.Click(
+  tries: integer = 5;
+  click_type: integer = MOUSE_LEFT;
+  text: string = '';
+  rotate: boolean = false;
+  backup_right: boolean = false;
+  search_all: boolean = false
+): boolean
+var
+  c, i, x, y: integer = 0;
+begin
+  result := false;
+
+  if tries = 0 then
+    Exit();
+
+  if self.Find(mainscreen.GetBounds()) then begin
+    if search_all then
+      c := High(self.hits);
+
+    if text = '' then
+      text := self.name;
+
+    for i := 0 to c do begin
+      MouseRandom(hits[i].GetMiddle(), MOUSE_MOVE);
+
+      if (click_type = MOUSE_LEFT) and IsMouseOverText(
+        [text], RandomRange(800, 1000)
+      ) then begin
+        FastClick(MOUSE_LEFT);
+
+        result := true;
+      end else if (backup_right) or (click_type = MOUSE_RIGHT) then begin
+        FastClick(MOUSE_RIGHT);
+
+        result := chooseOption.Select([text]);
+      end
+
+      if result then begin
+        GetMousePos(x, y);
+        MouseCircle(x, y, Random(100));
+
+        minimap.WaitPlayerMoving();
+
+        break;
+      end
+    end
+  end
+
+  if not result and rotate then begin
+    minimap.setAngle(Random(360));
+
+    Exit(self.Click(tries - 1, click_type, text, rotate, backup_right, search_all));
+  end
+end
 
 procedure TPlayer.Configure()
 begin
@@ -141,7 +594,21 @@ begin
       ^.SetMinPixelCount(5);
   end
 
-  karamja.setup('karamja', '', __DEFAULT_ACCURACY, __DEFAULT_TOLERANCE, 0.7);
+  AssertSPSMap(
+    'Includes/SPS/img',
+    'https://github.com/SRLSuperUser/superusers-karamja-fisher/blob/master/re' +
+    'sources/sps',
+    'su-kf-karamja',
+    '5A2D88922839F922B19DA87E6CE4D7C39D400608'
+  );
+
+  karamja.setup(
+    'su-kf-karamja',
+    '',
+    __DEFAULT_ACCURACY,
+    __DEFAULT_TOLERANCE,
+    0.7
+  );
 
   SetLength(walking_paths, 5);
 
@@ -198,30 +665,10 @@ begin
   karamja.WalkPath(path);
 end
 
-procedure MinMaxShift()
-var
-  min, max, c: integer;
-begin
-  min := 9999;
-  max := 0;
-
-  repeat
-    c := GetPixelShiftAverage(mainscreen.playerBox,  50, 250);
-
-    if c < min then begin
-      min := c;
-
-      WriteLn(ToStr(c) + ' - ' + ToStr(max));
-    end
-
-    if c > max then begin
-      max := c;
-
-      WriteLn(ToStr(min) + ' - ' + ToStr(c));
-    end
-  until false;
-end
-
+{**
+ * I find it weird this doesn't exist in Simba/SRL-6..
+ *
+ *}
 function TIntegerArray.StdDev(): extended
 var
   avg, total: extended;
@@ -292,7 +739,13 @@ begin
 
   c := tabBackpack.Count();
 
-  if SUSGetObject('Stiles')^.Click(10, MOUSE_RIGHT, 'xch', true, true) then begin
+  if SUSGetObject('Stiles')^.Click(
+    10,
+    MOUSE_RIGHT,
+    'xch',
+    true,
+    true
+  ) then begin
     t.Start();
 
     repeat
@@ -337,7 +790,8 @@ var
   shrimp_etc, I: integer;
   pa: TPointArray;
 begin
-  shrimp_etc := DTMFromString('mlwAAAHicY2dgYFjExMAwH4jnAfFKIN4JxDuAeD0QT2VkYJgBxLOg9DQgXgjES4CYgYEJD6YIAABJfgkN');
+  shrimp_etc := DTMFromString('mlwAAAHicY2dgYFjExMAwH4jnAfFKIN4JxDuAeD0QT2VkY' +
+    'JgBxLOg9DQgXgjES4CYgYEJD6YIAABJfgkN');
 
   with tabBackpack.getBounds() do
     FindDTMs(shrimp_etc, pa, x1, y1, x2, y2);
