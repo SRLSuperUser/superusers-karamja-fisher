@@ -629,8 +629,8 @@ begin
 
   AssertSPSMap(
     'Includes/SPS/img',
-    'https://github.com/SRLSuperUser/superusers-karamja-fisher/blob/master/re' +
-    'sources/sps',
+    'https://raw.githubusercontent.com/SRLSuperUser/superusers-karamja-fisher' +
+    '/master/resources/sps',
     'su-kf-karamja',
     '5A2D88922839F922B19DA87E6CE4D7C39D400608'
   );
