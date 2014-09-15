@@ -40,4 +40,11 @@
     <colordata color="10915970"/>
     <colordata color="9729123"/>
   </profile>
+  <profile name="Fishing spor - Water" cts="2">
+    <colordata color="6900281"/>
+    <colordata color="6768952"/>
+    <colordata color="1778475"/>
+    <colordata color="7097659"/>
+    <colordata color="7557438"/>
+  </profile>
 </acaprofile>

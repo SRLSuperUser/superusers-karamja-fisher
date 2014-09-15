@@ -608,14 +608,23 @@ begin
 
   SUSSetup();
 
-  SUSAddObject('Fishing spot')
-    ^.CreatePart()
+  with SUSAddObject('Fishing spot')^ do begin
+    CreatePart()
       ^.SetColorData(3, 12495003, 43, 0.0, 0.0, 0.50)
       ^.SetSize([2, 2, 155, 155])
       ^.SetMaxDistance(200)
       ^.SetStep(6)
       ^.SetAnti(false)
       ^.SetMinPixelCount(6);
+
+    CreatePart()
+      ^.SetColorData(2, 4992334, 11, 2.18, 0.36)
+      ^.SetSize([2, 2, 155, 155])
+      ^.SetMaxDistance(200)
+      ^.SetStep(6)
+      ^.SetAnti(false)
+      ^.SetMinPixelCount(6);
+  end
 
   with SUSAddObject('Stiles')^ do begin
     CreatePart()
