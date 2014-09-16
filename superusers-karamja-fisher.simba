@@ -766,6 +766,9 @@ var
   ia: TIntegerArray;
   e: extended;
 begin
+  if not IsLoggedIn() then
+    Exit(false);
+
   SetLength(ia, 10);
   Dec(sigmas);
 
@@ -877,7 +880,7 @@ begin
     Walk(true);
 
     repeat
-      while tabBackpack.Count() < 28 do begin
+      while (tabBackpack.Count() < 28) and IsLoggedIn() do begin
         if SUSGetObject('Fishing spot')^.Click(
           20,
           MOUSE_LEFT,
