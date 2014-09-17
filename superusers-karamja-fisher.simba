@@ -469,12 +469,15 @@ begin
   end
 end
 
-procedure TPlayer.Configure()
+procedure TPlayer.Configure(const message: string = '')
 begin
   disableSRLDebug := not self.booleans[0];
 
-  if not self.Login() then
+  if not self.Login() then begin
+    WriteLn(message);
+
     TerminateScript();
+  end
 
   minimap.clickCompass();
   mainscreen.setAngle(MS_ANGLE_HIGH);
@@ -705,9 +708,8 @@ end
 
 procedure Die(const message: string = '')
 begin
-  WriteLn(message);
-
-  TerminateScript();
+  if not IsLoggedIn() then
+    players[currentPlayer].Configure(message);
 end
 
 procedure Walk(invert: boolean = false)
@@ -877,8 +879,6 @@ begin
   Initialize();
 
   repeat
-    Walk(true);
-
     repeat
       while (tabBackpack.Count() < 28) and IsLoggedIn() do begin
         if SUSGetObject('Fishing spot')^.Click(
@@ -902,7 +902,9 @@ begin
       DropJunkFish();
 
       if tabBackpack.Count() = 28 then
-        NoteFish();
+        NoteFish()
+      else
+        Walk(true);
     until not IsLoggedIn();
 
     players[currentPlayer].Configure();
