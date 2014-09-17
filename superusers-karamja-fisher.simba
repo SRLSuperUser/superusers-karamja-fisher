@@ -663,41 +663,21 @@ begin
     0.7
   );
 
-  SetLength(walking_paths, 5);
+  SetLength(walking_paths, 3);
 
   walking_paths[0] := [
-    Point(589, 119), Point(587, 130), Point(579, 133), Point(561, 137),
-    Point(542, 137), Point(530, 149), Point(498, 151), Point(482, 157),
-    Point(479, 176), Point(477, 188), Point(452, 188), Point(423, 202),
-    Point(395, 216), Point(370, 237), Point(357, 251), Point(326, 250),
-    Point(306, 262), Point(292, 268), Point(271, 274)];
+    Point(414, 79), Point(348, 100), Point(284, 122), Point(219, 148),
+    Point(161, 181), Point(115, 218)
+  ];
 
   walking_paths[1] := [
-    Point(588, 117), Point(588, 127), Point(590, 142), Point(564, 153),
-    Point(539, 161), Point(521, 148), Point(478, 167), Point(477, 185),
-    Point(465, 198), Point(430, 204), Point(406, 219), Point(371, 236),
-    Point(333, 247), Point(309, 256), Point(291, 265), Point(270, 276)
+    Point(415, 82), Point(359, 99), Point(320, 136), Point(259, 165),
+    Point(216, 188), Point(170, 200), Point(143, 212), Point(122, 217)
   ];
 
   walking_paths[2] := [
-    Point(589, 128), Point(587, 139), Point(568, 153), Point(542, 161),
-    Point(511, 151), Point(480, 164), Point(482, 188), Point(478, 210),
-    Point(449, 220), Point(406, 229), Point(371, 243), Point(353, 249),
-    Point(330, 252), Point(306, 263), Point(285, 267), Point(269, 277)
-  ];
-
-  walking_paths[3] := [
-    Point(588, 123), Point(591, 130), Point(589, 142), Point(562, 146),
-    Point(545, 153), Point(524, 154), Point(485, 158), Point(478, 172),
-    Point(476, 189), Point(458, 223), Point(430, 221), Point(401, 221),
-    Point(376, 234), Point(349, 248), Point(305, 262), Point(275, 273)
-  ];
-
-  walking_paths[4] := [
-    Point(588, 126), Point(591, 137), Point(586, 152), Point(574, 159),
-    Point(544, 157), Point(529, 150), Point(498, 146), Point(480, 183),
-    Point(442, 196), Point(404, 216), Point(367, 239), Point(334, 253),
-    Point(296, 261), Point(271, 275)
+    Point(415, 84), Point(385, 97), Point(325, 107), Point(269, 127),
+    Point(222, 154), Point(179, 192), Point(129, 214)
   ];
 end
 
