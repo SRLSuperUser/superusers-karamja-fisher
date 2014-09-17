@@ -652,15 +652,15 @@ begin
     'https://raw.githubusercontent.com/SRLSuperUser/superusers-karamja-fisher' +
     '/master/resources/sps',
     'su-kf-karamja',
-    '5A2D88922839F922B19DA87E6CE4D7C39D400608'
+    'CEACADD2B5FCEDFF5AB648DC6CE505540F706EB4'
   );
 
   karamja.setup(
     'su-kf-karamja',
     '',
-    __DEFAULT_ACCURACY,
-    __DEFAULT_TOLERANCE,
-    0.7
+    4,
+    600,
+    0.3
   );
 
   SetLength(walking_paths, 3);
