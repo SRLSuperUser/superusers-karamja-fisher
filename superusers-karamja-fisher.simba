@@ -684,7 +684,7 @@ begin
   );
 
   if version_remote = '' then begin
-    MessageBox('Cannot access GitHub. Please make sure you have OpenSSL insta' +
+    MessageBox('Cannot self-update. Please make sure you have OpenSSL insta' +
       'lled on your system', 'Error', 0);
 
     TerminateScript();
@@ -700,15 +700,6 @@ begin
       fh := ReWritefile(ScriptPath + 'superusers-karamja-fisher.simba', true);
 
       WriteFileString(fh, source);
-
-      MessageBox(
-        'Successfully updated SuperUser''s Karamja Fisher to v' +
-        version_remote + '!' + Chr(13) + Chr(13) + ' Please reload the script.',
-        'Success',
-        0
-      );
-
-      TerminateScript();
     except
       MessageBox('An error occurred while trying to update!', 'Error', 0);
     finally
@@ -721,6 +712,7 @@ procedure Initialize()
 var
   i: integer;
 begin
+  Updater();
   ClearDebug();
 
   disableSRLDebug := true;
