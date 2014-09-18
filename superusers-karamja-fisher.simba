@@ -3,7 +3,7 @@ program superusers_karamja_fisher;
 {**
  * Copyright (c) SuperUser.
  *
- * Use as you wish, what credit where it's due.
+ * Use as you wish, but credit where it's due.
  *}
 
 {$define SMART}
@@ -14,7 +14,7 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.1';
+  VERSION = '1.0.2';
 
 type
   TStatisticsResource = record
@@ -199,7 +199,14 @@ begin
   for i := 0 to High(self.resources) do
     with self.resources[i] do begin
       b.Print(name, 2, i);
-      b.Print(ToStr(GetTotal()), 3, i);
+      b.Print(
+        Format(
+          '%d (%.0f/h)', [GetTotal(), ((0.0 + GetTotal()) / tr) * 3600000.0]
+        ),
+        3,
+        i,
+        clYellow
+      );
     end
 
   smartImage.drawBitmap(b.getIndex(), self.canvas_location);
