@@ -14,7 +14,7 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.4';
+  VERSION = '1.0.5';
 
 type
   TStatisticsResource = record
@@ -104,6 +104,14 @@ begin
     result := result + self.resources[i].GetXp();
 end
 
+function TStatistics.GetTotalResources(): integer
+var
+  i: integer;
+begin
+  for i := 0 to High(self.resources) do
+    IncEx(result, self.resources[i].GetTotal());
+end
+
 procedure TStatistics.AddResource(
   const _name: string;
   _xp: extended = 0;
@@ -185,6 +193,8 @@ begin
   b := GetMufasaBitmap(CopyBitmap(self.canvas.getIndex()));
   tr := GetTimeRunning();
 
+  // First column.
+
   b.Print('Time running', 0, 0);
   b.Print(MSToTime(tr, TIME_BARE), 1, 0, clYellow);
 
@@ -195,6 +205,8 @@ begin
   b.Print(
     Format('%.0f', [((0.0 + self.GetXp()) / tr) * 3600000.0]), 1, 2, clYellow
   );
+
+  // Second column.
 
   for i := 0 to High(self.resources) do
     with self.resources[i] do begin
@@ -208,6 +220,19 @@ begin
         clYellow
       );
     end
+
+  b.Print('Total fish', 2, Length(self.resources));
+  b.Print(
+    Format(
+      '%d (%.0f/h)', [
+        GetTotalResources(),
+        ((0.0 + GetTotalResources()) / tr) * 3600000.0
+      ]
+    ),
+    3,
+    Length(self.resources),
+    clYellow
+  );
 
   smartImage.drawBitmap(b.getIndex(), self.canvas_location);
 
@@ -735,7 +760,7 @@ begin
 
   with playerform do begin
     name := 'SuperUser''s Karamja Fisher';
-    scriptHelpThread := 'http://villavu.com/forum/showthread.php?t=';
+    scriptHelpThread := 'https://villavu.com/forum/showthread.php?t=110289';
     scriptSettingsPath := AppPath + 'Scripts/superusers-karamja-fisher.txt';
 
     comboBoxLabels := ['Fish type'];
