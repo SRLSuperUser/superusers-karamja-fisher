@@ -11,6 +11,22 @@ const
   VERSION = '1.0';
 
 type
+  TStatisticsResource = record
+    name: string;
+    amount: integer;
+    amount_patch: integer;
+    dtm: integer;
+    xp: extended;
+  end
+
+  TStatistics = record
+    canvas: TMufasaBitmap;
+    canvas_location: TPoint;
+    bounds: TBox;
+    resources: array of TStatisticsResource;
+    xp: integer;
+  end
+
   TSurfacePartFilterFunc = function (
     const atpa: T2DPointArray;
     const p_: TPoint;
@@ -48,6 +64,142 @@ var
   walking_paths: T2DPointArray;
   __surface_objects: TSurfaceObjectArray;
   fish_str: string;
+  statistics: TStatistics;
+
+function TStatisticsResource.GetXp(): extended
+begin
+  result := (self.amount + self.amount_patch) * self.xp;
+end
+
+function TStatisticsResource.GetTotal(): integer
+begin
+  result := self.amount + self.amount_patch;
+end
+
+procedure TStatisticsResource.UpdatePatch()
+begin
+  if self.dtm > -1 then
+    self.amount_patch := tabBackpack.CountDTM(self.dtm);
+end
+
+procedure TStatistics.UpdatePatch()
+var
+  i: integer;
+begin
+  for i := 0 to High(self.resources) do
+    self.resources[i].UpdatePatch();
+end
+
+function TStatistics.GetXp(): extended
+var
+  i: integer;
+begin
+  for i := 0 to High(self.resources) do
+    result := result + self.resources[i].GetXp();
+end
+
+procedure TStatistics.AddResource(
+  const _name: string;
+  _xp: extended = 0;
+  _dtm: integer = -1
+)
+begin
+  SetLength(self.resources, Length(self.resources) + 1);
+
+  with self.resources[High(self.resources)] do begin
+    xp := _xp;
+    dtm := _dtm;
+    name := _name;
+  end
+end
+
+procedure TStatistics.Commit()
+var
+  i: integer;
+begin
+  for i := 0 to High(self.resources) do
+    with self.resources[i] do begin
+      IncEx(amount, amount_patch);
+
+      amount_patch := 0;
+    end
+end
+
+procedure TStatistics.Initialize()
+begin
+  with actionBar.GetBounds() do begin
+    self.bounds.x1 := 0;
+    self.bounds.x2 := x2;
+    self.bounds.y1 := 0;
+    self.bounds.y2 := __smartClientHeight - y1;
+
+    self.canvas.init(Client.GetMBitmaps);
+    self.canvas.SetSize(self.bounds.x2 + 1, self.bounds.y2 + 1);
+
+    self.canvas.Rectangle(self.bounds, $385385);
+    self.canvas.Rectangle([0, 0, self.bounds.x2, 33], $21314e);
+    self.canvas.DrawText(
+      'SuperUser''s Karamja Fisher v' + VERSION, Point(4, 2), BigChars, false, clWhite
+    );
+
+    with self.canvas_location do begin
+      x := 0;
+      y := y1;
+    end
+  end
+end
+
+procedure TMufasaBitmap.Print(
+  const s: string;
+  col,
+  row: integer;
+  color: TColor = clWhite;
+  col_offset: integer = 100
+)
+begin
+  if col = 1 then
+    col_offset := 110;
+
+  self.DrawClippedText(
+    s,
+    [4 + col * col_offset, 42 + row * 15],
+    'smallChars',
+    true,
+    color
+  );
+end
+
+procedure TStatistics.Update()
+var
+  b: TMufasaBitmap;
+  tr, i: longint;
+begin
+  self.UpdatePatch();
+
+  b := GetMufasaBitmap(CopyBitmap(self.canvas.getIndex()));
+  tr := GetTimeRunning();
+
+  b.Print('Time running', 0, 0);
+  b.Print(MSToTime(tr, TIME_BARE), 1, 0, clYellow);
+
+  b.Print('Xp gained', 0, 1);
+  b.Print(Format('%.0f', [self.GetXp()]), 1, 1);
+
+  b.Print('XP/h', 0, 2);
+  b.Print(
+    Format('%.0f', [((0.0 + self.GetXp()) / tr) * 3600000.0]), 1, 2, clYellow
+  );
+
+  for i := 0 to High(self.resources) do
+    with self.resources[i] do begin
+      b.Print(name, 2, i);
+      b.Print(ToStr(GetTotal()), 3, i);
+    end
+
+  smartImage.drawBitmap(b.getIndex(), self.canvas_location);
+
+  b.Free();
+end
 
 procedure SUSSetup()
 begin
@@ -679,11 +831,27 @@ begin
     Point(415, 84), Point(385, 97), Point(325, 107), Point(269, 127),
     Point(222, 154), Point(179, 192), Point(129, 214)
   ];
+
+  statistics.AddResource('Swordfish', 100.0, DTMFromString('mlwAAAHicY2dgYNjN' +
+    'wsCwA4g3A/ExIN4HxNuA+AgQpzIxMGQAcT4QFwBxIRCXAXElEDMwMOHBFAEAF64IcA=='));
+
+  statistics.AddResource('Tuna', 80.0, DTMFromString('mrAAAAHic42BgYHBjZmBwBm' +
+    'IfIA4E4mAgtgNidyAOAOIgJgaGUCAOYYKwY6A4AojjgZiBgYkApg4AANCaBUs='));
+
+  statistics.AddResource('Lobster', 90.0, DTMFromString('mrAAAAHic42BgYNjOxMC' +
+    wGYiXA/ECIN4LxFuh/G1A3M/IwDANiKcD8SwgngyllwPxIiBmYGAigKkDAK+nCn0='));
+
+  statistics.Initialize();
+  statistics.Update();
 end
 
 procedure Uninitialize()
+var
+  i: integer;
 begin
-
+  for i := 0 to High(statistics.resources) do
+    if statistics.resources[i].dtm > -1 then
+      FreeDTM(statistics.resources[i].dtm);
 end
 
 procedure Die(const message: string = '')
@@ -751,28 +919,32 @@ begin
   if not IsLoggedIn() then
     Exit(false);
 
-  SetLength(ia, 10);
-  Dec(sigmas);
+  try
+    SetLength(ia, 10);
+    Dec(sigmas);
 
-  c := tabBackpack.Count();
-  result := false;
+    c := tabBackpack.Count();
+    result := false;
 
-  for i := 0 to High(ia) do begin
-    if tabBackpack.IsFull() then
-      Exit(false);
+    for i := 0 to High(ia) do begin
+      if tabBackpack.IsFull() then
+        Exit(false);
 
-    if c <> tabBackpack.Count() then
-      Exit(true);
+      if c <> tabBackpack.Count() then
+        Exit(true);
 
-    ia[i] := GetPixelShiftAverage(mainscreen.playerBox, 25, 100);
+      ia[i] := GetPixelShiftAverage(mainscreen.playerBox, 25, 100);
+    end
+
+    e := ia.StdDev();
+
+    if (e < 50) and (sigmas > 0) then
+      result := IsFishing(sigmas)
+    else
+      result := e > 50;
+  finally
+    statistics.Update();
   end
-
-  e := ia.StdDev();
-
-  if (e < 50) and (sigmas > 0) then
-    result := IsFishing(sigmas)
-  else
-    result := e > 50;
 end
 
 procedure NoteFish(tries: integer = 5)
@@ -786,6 +958,8 @@ begin
   Walk();
 
   c := tabBackpack.Count();
+
+  statistics.Commit();
 
   if SUSGetObject('Stiles')^.Click(
     10,
