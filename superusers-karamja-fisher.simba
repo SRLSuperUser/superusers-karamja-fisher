@@ -14,7 +14,7 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.2';
+  VERSION = '1.0.3';
 
 type
   TStatisticsResource = record
@@ -1039,6 +1039,11 @@ begin
 
   repeat
     repeat
+      if tabBackpack.Count() = 28 then
+        NoteFish()
+      else
+        Walk(true);
+
       while (tabBackpack.Count() < 28) and IsLoggedIn() do begin
         if SUSGetObject('Fishing spot')^.Click(
           20,
@@ -1059,11 +1064,6 @@ begin
       end
 
       DropJunkFish();
-
-      if tabBackpack.Count() = 28 then
-        NoteFish()
-      else
-        Walk(true);
     until not IsLoggedIn();
 
     players[currentPlayer].Configure();
