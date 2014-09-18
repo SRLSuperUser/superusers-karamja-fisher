@@ -839,7 +839,7 @@ begin
     'IfIA4E4mAgtgNidyAOAOIgJgaGUCAOYYKwY6A4AojjgZiBgYkApg4AANCaBUs='));
 
   statistics.AddResource('Lobster', 90.0, DTMFromString('mrAAAAHic42BgYNjOxMC' +
-    wGYiXA/ECIN4LxFuh/G1A3M/IwDANiKcD8SwgngyllwPxIiBmYGAigKkDAK+nCn0='));
+    'wGYiXA/ECIN4LxFuh/G1A3M/IwDANiKcD8SwgngyllwPxIiBmYGAigKkDAK+nCn0='));
 
   statistics.Initialize();
   statistics.Update();
