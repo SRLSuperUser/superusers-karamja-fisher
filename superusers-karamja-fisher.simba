@@ -14,7 +14,7 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.5';
+  VERSION = '1.0.6';
 
 type
   TStatisticsResource = record
@@ -963,15 +963,15 @@ begin
       if c <> tabBackpack.Count() then
         Exit(true);
 
-      ia[i] := GetPixelShiftAverage(mainscreen.playerBox, 25, 100);
+      ia[i] := GetPixelShiftAverage(IntToBox(282, 188, 288, 196), 25, 100);
     end
 
     e := ia.StdDev();
 
-    if (e < 50) and (sigmas > 0) then
+    if (e < 8) and (sigmas > 0) then
       result := IsFishing(sigmas)
     else
-      result := e > 50;
+      result := e > 8;
   finally
     statistics.Update();
   end
@@ -1064,6 +1064,8 @@ begin
 
   repeat
     repeat
+      DropJunkFish();
+
       if tabBackpack.Count() = 28 then
         NoteFish()
       else
@@ -1087,8 +1089,6 @@ begin
           end
         end
       end
-
-      DropJunkFish();
     until not IsLoggedIn();
 
     players[currentPlayer].Configure();
