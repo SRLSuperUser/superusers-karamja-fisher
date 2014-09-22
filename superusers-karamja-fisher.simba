@@ -14,7 +14,7 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.7';
+  VERSION = '1.0.71';
 
 type
   TStatisticsResource = record
@@ -967,8 +967,6 @@ begin
     end
 
     e := ia.StdDev();
-
-    WriteLn(e);
 
     if (e < 9) and (sigmas > 0) then
       result := IsFishing(sigmas)
