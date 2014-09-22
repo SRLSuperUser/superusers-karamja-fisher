@@ -14,7 +14,7 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.6';
+  VERSION = '1.0.7';
 
 type
   TStatisticsResource = record
@@ -940,7 +940,7 @@ end
  * Check whether the player is currently fishing.
  * Uses standard deviation with two sigma-confidence.
  *}
-function IsFishing(sigmas: integer = 2): boolean
+function IsFishing(sigmas: integer = 3): boolean
 var
   c, i: integer;
   ia: TIntegerArray;
@@ -968,10 +968,12 @@ begin
 
     e := ia.StdDev();
 
-    if (e < 8) and (sigmas > 0) then
+    WriteLn(e);
+
+    if (e < 9) and (sigmas > 0) then
       result := IsFishing(sigmas)
     else
-      result := e > 8;
+      result := e > 9;
   finally
     statistics.Update();
   end
