@@ -14,7 +14,7 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.8';
+  VERSION = '1.0.9';
 
 type
   TStatisticsResource = record
@@ -963,15 +963,15 @@ begin
       if c <> tabBackpack.Count() then
         Exit(true);
 
-      ia[i] := GetPixelShiftAverage(IntToBox(282, 188, 288, 196), 25, 100);
+      ia[i] := GetPixelShiftAverage(IntToBox(282, 188, 288, 196), 25, 50);
     end
 
     e := ia.StdDev();
 
-    if (e < 8) and (sigmas > 0) then
+    if (e < 10) and (sigmas > 0) then
       result := IsFishing(sigmas)
     else
-      result := e > 8;
+      result := e > 10;
   finally
     statistics.Update();
   end
@@ -1032,7 +1032,6 @@ begin
 
       mainscreen.SetAngle(MS_ANGLE_HIGH);
     end
-    10..30: minimap.SetAngle(Random(360));
     31..80: MouseRandom(mainscreen.GetBounds().GetRandomPoint(), MOUSE_MOVE);
   end;
 end;
@@ -1076,7 +1075,7 @@ begin
           20,
           MOUSE_LEFT,
           fish_str,
-          true,
+          false,
           fish_str = 'arp',
           true
         ) then begin
