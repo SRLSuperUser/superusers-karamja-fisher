@@ -14,13 +14,14 @@ program superusers_karamja_fisher;
 {$i sps/lib/sps-rs3.simba}
 
 const
-  VERSION = '1.0.9';
+  VERSION = '1.0.91';
 
 type
   TStatisticsResource = record
     name: string;
     amount: integer;
     amount_patch: integer;
+    amount_remove: integer;
     dtm: integer;
     xp: extended;
   end
@@ -74,12 +75,12 @@ var
 
 function TStatisticsResource.GetXp(): extended
 begin
-  result := (self.amount + self.amount_patch) * self.xp;
+  result := self.GetTotal() * self.xp;
 end
 
 function TStatisticsResource.GetTotal(): integer
 begin
-  result := self.amount + self.amount_patch;
+  result := self.amount + self.amount_patch - self.amount_remove;
 end
 
 procedure TStatisticsResource.UpdatePatch()
@@ -124,6 +125,11 @@ begin
     xp := _xp;
     dtm := _dtm;
     name := _name;
+
+    UpdatePatch();
+
+    amount_remove := amount_patch;
+    amount_patch := 0;
   end
 end
 
